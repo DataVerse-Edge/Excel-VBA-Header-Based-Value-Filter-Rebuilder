@@ -1,0 +1,288 @@
+Overview
+This project is an Excel VBA automation that removes specified values from a specific header/column across selected worksheets.
+The macro is controlled entirely through a Control worksheet, making the solution reusable without changing the VBA code for each new file.
+Core workflow
+```text
+Control Sheet
+     │
+     ├── A2 → Separator
+     ├── C1 → Header to locate
+     ├── C2:C... → Values to remove
+     └── E2:E... → Target worksheets
+             │
+             ▼
+       Find header in Row 1
+             │
+             ▼
+       Process only that column
+             │
+             ▼
+       Split cell values
+             │
+             ▼
+       Remove matching values
+             │
+             ▼
+       Rebuild using same separator
+             │
+             ▼
+       Write result back to cell
+```
+---
+What problem does it solve?
+In configuration, CPQ, product-data, and Excel-based data-management workflows, cells may contain multiple values in a delimited format.
+For example:
+```text
+1;2;a;3;4;b;5
+```
+If `a` and `b` need to be removed, manually editing thousands of cells is inefficient and error-prone.
+This automation allows the user to maintain a simple control list:
+```text
+a
+b
+```
+and automatically transform:
+```text
+1;2;a;3;4;b;5
+```
+into:
+```text
+1;2;3;4;5
+```
+---
+Control Sheet Structure
+The workbook uses the following control structure:
+Cell / Column	Purpose
+`A2`	Separator used inside target cells
+`C1`	Header name to locate in target worksheets
+`C2:C...`	Values that should be removed
+`E2:E...`	Worksheets that should be processed
+Example
+```text
+A2 = ;
+C1 = Product Values
+
+C2 = a
+C3 = b
+C4 = xyz;abc
+
+E2 = Sheet1
+E3 = Sheet2
+E4 = Sheet5
+```
+The macro interprets the deletion list as:
+```text
+a
+b
+xyz
+abc
+```
+---
+Example
+Before
+Suppose `Sheet1` contains:
+Product Values	Description	Price
+`1;2;a;3;4;b;5`	`a;b`	100
+`10;xyz;20`	`hello`	200
+`abc;30;40`	`xyz`	300
+`a`	`test`	400
+Control Sheet:
+```text
+Separator: ;
+Header: Product Values
+
+Values to remove:
+a
+b
+xyz
+abc
+```
+After
+Product Values	Description	Price
+`1;2;3;4;5`	`a;b`	100
+`10;20`	`hello`	200
+`30;40`	`xyz`	300
+(blank)	`test`	400
+Only the column under Product Values is modified.
+The `Description` and `Price` columns are untouched.
+---
+Supported Separators
+The separator can be any string supported by VBA's `Split` function.
+Examples:
+```text
+;
+```
+```text
+; 
+```
+```text
+|
+```
+```text
+,
+```
+```text
+||
+```
+```text
+###
+```
+For example, if:
+```text
+A2 = ||
+```
+and a target cell contains:
+```text
+1||2||a||3||b||4
+```
+the result becomes:
+```text
+1||2||3||4
+```
+---
+Key Features
+1. Control-sheet driven
+No hard-coded deletion list is required.
+Users can update the Control sheet and rerun the macro.
+2. Header-specific processing
+The macro searches Row 1 of each target worksheet for the header specified in `C1`.
+Only the column containing that header is processed.
+3. Multiple values per control cell
+A single Control Column C cell can contain:
+```text
+xyz;abc;123
+```
+The macro automatically separates these into individual values.
+4. Delimited cell processing
+Target cells such as:
+```text
+A;B;C;D
+```
+are split, filtered, and rebuilt.
+5. Standalone values
+A cell containing only:
+```text
+ABC
+```
+is also handled if `ABC` is in the removal list.
+6. Case-insensitive matching
+The macro treats:
+```text
+ABC
+abc
+Abc
+```
+as the same value.
+7. Whitespace handling
+Leading and trailing spaces are ignored when comparing values.
+8. Target worksheet control
+Only worksheets listed in Column E are processed.
+9. No row or column deletion
+The macro does not delete Excel rows or columns.
+It only modifies the cell value under the specified header.
+10. Missing-sheet and missing-header reporting
+The completion message reports worksheets that could not be found and worksheets where the specified header was missing.
+---
+Dummy File
+`Dummy_Control_File.xlsx` is included in this repository.
+It contains:
+`Control`
+`Sheet1`
+`Sheet2`
+`Sheet5`
+The dummy workbook demonstrates the control-sheet configuration and sample data.
+> The `.xlsx` file is intentionally provided without embedded VBA. Import `RemoveSpecifiedValues.bas` into the VBA editor of a macro-enabled copy when testing the automation.
+---
+Project Structure
+```text
+excel-vba-header-value-filter/
+│
+├── README.md
+├── Dummy_Control_File.xlsx
+└── RemoveSpecifiedValues.bas
+```
+---
+Technical Approach
+The automation follows a simple data transformation pattern:
+```text
+Read Control Data
+       ↓
+Build Removal Dictionary
+       ↓
+Read Target Worksheets
+       ↓
+Find C1 Header in Row 1
+       ↓
+Identify Header Column
+       ↓
+Read Each Cell Below Header
+       ↓
+Split by Configured Separator
+       ↓
+Filter Removal Values
+       ↓
+Rebuild Delimited String
+       ↓
+Write Back to Same Cell
+```
+A VBA `Scripting.Dictionary` is used for fast value lookup.
+This avoids repeatedly searching the Control sheet for every target cell.
+---
+Safety Considerations
+The macro is designed to limit unintended changes:
+Only worksheets listed in Column E are processed.
+Only the column matching `C1` is processed.
+The header itself is not modified.
+Other columns are not modified.
+Rows are not deleted.
+Excel columns are not deleted.
+Duplicate removal values are automatically ignored.
+Missing worksheets are reported.
+Missing headers are reported.
+Excel calculation, events, and screen updating are restored after execution.
+Recommendation
+Always test the macro against a copy of the source workbook before processing production data.
+---
+Example Use Cases
+This automation can be adapted for:
+CPQ product configuration data
+Tacton CPQ data preparation
+Product attribute cleanup
+Delimited configuration values
+Excel-based master-data cleanup
+Data migration preparation
+Removing obsolete configuration options
+Standardizing product-data lists
+Pre-processing data before import into another system
+---
+Skills Demonstrated
+This project demonstrates:
+Excel VBA
+Excel automation
+Dynamic worksheet processing
+Dynamic header identification
+`Scripting.Dictionary`
+String parsing
+Delimited-value processing
+Data cleansing
+Error handling
+Performance optimization
+Control-sheet-driven automation
+Reusable Excel tooling
+---
+Future Enhancements
+Potential future improvements include:
+Preview mode before making changes
+Change/audit log
+Before/after value logging
+Undo/backup functionality
+UserForm-based interface
+Progress indicator
+Process summary report
+Optional formula protection
+CSV input/output support
+Batch processing of multiple workbooks
+---
+Author
+Yash
+Excel VBA | Python Automation | Tacton CPQ | Data Modelling | Process Automation
